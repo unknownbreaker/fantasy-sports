@@ -1,32 +1,24 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { copyFileSync } from 'fs';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
   plugins: [
     react(),
-    {
-      name: 'copy-manifest-and-icons',
-      closeBundle() {
-        // Copy manifest
-        copyFileSync('manifest.json', 'dist/manifest.json');
-        // Copy icons
-        copyFileSync('public/icons/icon-16.png', 'dist/icons/icon-16.png');
-        copyFileSync('public/icons/icon-32.png', 'dist/icons/icon-32.png');
-        copyFileSync('public/icons/icon-48.png', 'dist/icons/icon-48.png');
-        copyFileSync('public/icons/icon-96.png', 'dist/icons/icon-96.png');
-      },
-    },
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'manifest.json',
+          dest: '.',
+        },
+        {
+          src: 'public/icons',
+          dest: '.',
+        },
+      ],
+    }),
   ],
-  css: {
-    preprocessorOptions: {
-      scss: {
-        api: 'modern-compiler',
-        silenceDeprecations: ['legacy-js-api'],
-      },
-    },
-  },
   build: {
     rollupOptions: {
       input: {
