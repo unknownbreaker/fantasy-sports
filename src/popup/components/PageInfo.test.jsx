@@ -287,13 +287,15 @@ describe('PageInfo Component - Data Communication Tests', () => {
         elementCount: 10,
       };
 
-      render(<PageInfo pageInfo={mockPageInfo} isLoading={false} />);
+      const { container } = render(
+        <PageInfo pageInfo={mockPageInfo} isLoading={false} />
+      );
 
-      expect(
-        screen.getByText('Multiple    Spaces    Here', {
-          normalizeWhitespace: false,
-        })
-      ).toBeDefined();
+      // Find the .value span that contains the title
+      const valueSpans = container.querySelectorAll('.info-row .value');
+      const titleValue = valueSpans[1]; // Second value span is the title
+
+      expect(titleValue.textContent).toBe('Multiple    Spaces    Here');
     });
   });
 
@@ -529,9 +531,9 @@ describe('PageInfo Component - Data Communication Tests', () => {
       // This simulates the exact data structure returned from:
       // browser.tabs.sendMessage(tabs[0].id, { type: 'GET_PAGE_INFO' })
       const pageInfoResponse = {
-        url: window.location?.href || 'https://test.example.com',
-        title: document.title || 'Test Page',
-        elementCount: document.querySelectorAll?.('*').length || 150,
+        url: 'https://test.example.com/page',
+        title: 'Test Page',
+        elementCount: 150,
       };
 
       render(<PageInfo pageInfo={pageInfoResponse} isLoading={false} />);
