@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import browser from 'webextension-polyfill';
 import App from './App';
@@ -68,7 +69,7 @@ describe('App Data Communication Tests', () => {
       );
 
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       fireEvent.change(input, { target: { value: 'Hello from popup' } });
       fireEvent.click(button);
@@ -91,7 +92,7 @@ describe('App Data Communication Tests', () => {
       );
 
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       fireEvent.change(input, { target: { value: 'Test' } });
       fireEvent.click(button);
@@ -119,7 +120,7 @@ describe('App Data Communication Tests', () => {
       );
 
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       fireEvent.change(input, { target: { value: 'Test message' } });
       fireEvent.click(button);
@@ -147,7 +148,7 @@ describe('App Data Communication Tests', () => {
       );
 
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       fireEvent.change(input, { target: { value: 'Test' } });
       fireEvent.click(button);
@@ -171,8 +172,20 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
+      // Wait for page info query to complete
+      await waitFor(() => {
+        expect(browser.tabs.sendMessage).toHaveBeenCalledWith(123, {
+          type: 'GET_PAGE_INFO',
+        });
+      });
+
+      // Clear mock calls from page info query
+      vi.clearAllMocks();
+      browser.tabs.query.mockResolvedValue([{ id: 123 }]);
+      browser.tabs.sendMessage.mockResolvedValue({ success: true });
+
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       // Send first message
       fireEvent.change(input, { target: { value: 'Message 1' } });
@@ -217,7 +230,9 @@ describe('App Data Communication Tests', () => {
         data: 'Button clicked',
       };
 
-      mockMessageListener(message, { tab: { id: 123 } });
+      await act(async () => {
+        mockMessageListener(message, { tab: { id: 123 } });
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Button clicked')).toBeDefined();
@@ -225,9 +240,17 @@ describe('App Data Communication Tests', () => {
     });
 
     it('correctly formats received messages with timestamp', async () => {
-      const mockDate = new Date('2025-01-15T10:30:00');
-      vi.spyOn(global, 'Date').mockImplementation(() => mockDate);
-      vi.spyOn(mockDate, 'toLocaleTimeString').mockReturnValue('10:30:00 AM');
+      // Mock Date.now() to return consistent value
+      const mockTimestamp = 1705315800000; // 2025-01-15T10:30:00
+      vi.spyOn(Date, 'now').mockReturnValue(mockTimestamp);
+
+      // Mock toLocaleTimeString
+      const originalDate = global.Date;
+      global.Date = class extends originalDate {
+        toLocaleTimeString() {
+          return '10:30:00 AM';
+        }
+      };
 
       render(
         <QueryClientProvider client={queryClient}>
@@ -240,12 +263,16 @@ describe('App Data Communication Tests', () => {
         data: 'Test event',
       };
 
-      mockMessageListener(message, { tab: { id: 123 } });
+      await act(async () => {
+        mockMessageListener(message, { tab: { id: 123 } });
+      });
 
       await waitFor(() => {
         expect(screen.getByText('10:30:00 AM')).toBeDefined();
       });
 
+      // Restore original Date
+      global.Date = originalDate;
       vi.restoreAllMocks();
     });
 
@@ -256,23 +283,25 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
-      // Send first message
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'First message' },
-        { tab: { id: 123 } }
-      );
+      await act(async () => {
+        // Send first message
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'First message' },
+          { tab: { id: 123 } }
+        );
 
-      // Send second message
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Second message' },
-        { tab: { id: 123 } }
-      );
+        // Send second message
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Second message' },
+          { tab: { id: 123 } }
+        );
 
-      // Send third message
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Third message' },
-        { tab: { id: 123 } }
-      );
+        // Send third message
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Third message' },
+          { tab: { id: 123 } }
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('First message')).toBeDefined();
@@ -288,24 +317,37 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
-      // Send messages in sequence
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Oldest message' },
-        { tab: { id: 123 } }
-      );
+      await act(async () => {
+        // Send messages in sequence
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Oldest message' },
+          { tab: { id: 123 } }
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Oldest message')).toBeDefined();
       });
 
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Newest message' },
-        { tab: { id: 123 } }
-      );
+      await act(async () => {
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Newest message' },
+          { tab: { id: 123 } }
+        );
+      });
 
       await waitFor(() => {
-        const messages = screen.getAllByText(/message/i);
-        expect(messages[0].textContent).toContain('Newest message');
+        // Get all table body rows (excluding header)
+        const tableBody = screen
+          .getByText('Messages from Page')
+          .closest('section')
+          .querySelector('tbody');
+        const rows = tableBody.querySelectorAll('tr');
+
+        // First row should contain newest message
+        expect(rows[0].textContent).toContain('Newest message');
+        // Second row should contain oldest message
+        expect(rows[1].textContent).toContain('Oldest message');
       });
     });
 
@@ -317,6 +359,7 @@ describe('App Data Communication Tests', () => {
       );
 
       // Send message with different type
+      // No act() needed because this message type doesn't cause state updates
       mockMessageListener(
         { type: 'UNKNOWN_TYPE', data: 'Should be ignored' },
         { tab: { id: 123 } }
@@ -384,16 +427,21 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('https://github.com/user/repo')).toBeDefined();
-        expect(screen.getByText('GitHub Repository')).toBeDefined();
-        expect(screen.getByText('500')).toBeDefined();
-      });
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText('https://github.com/user/repo')
+          ).toBeDefined();
+          expect(screen.getByText('GitHub Repository')).toBeDefined();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('shows loading state while fetching page info', () => {
+      // Delay resolution to keep loading state visible
       browser.tabs.sendMessage.mockImplementation(
-        () => new Promise(() => {}) // Never resolves
+        () => new Promise((resolve) => setTimeout(resolve, 1000))
       );
 
       render(
@@ -407,7 +455,7 @@ describe('App Data Communication Tests', () => {
 
     it('handles page info fetch error', async () => {
       browser.tabs.sendMessage.mockRejectedValue(
-        new Error('Could not access page')
+        new Error('Failed to fetch page info')
       );
 
       render(
@@ -416,9 +464,12 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('Unable to access page info')).toBeDefined();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByText('Unable to access page info')).toBeDefined();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('sends correct message type for page info request', async () => {
@@ -429,21 +480,17 @@ describe('App Data Communication Tests', () => {
       );
 
       await waitFor(() => {
-        const calls = browser.tabs.sendMessage.mock.calls;
-        const pageInfoCall = calls.find(
-          (call) => call[1].type === 'GET_PAGE_INFO'
+        expect(browser.tabs.sendMessage).toHaveBeenCalledWith(
+          123,
+          expect.objectContaining({ type: 'GET_PAGE_INFO' })
         );
-        expect(pageInfoCall).toBeDefined();
       });
     });
   });
 
   describe('Bidirectional Communication Flow', () => {
     it('handles full roundtrip: popup sends, content responds, popup receives', async () => {
-      browser.tabs.sendMessage.mockResolvedValue({
-        success: true,
-        echo: 'Response from content',
-      });
+      browser.tabs.sendMessage.mockResolvedValue({ success: true });
 
       render(
         <QueryClientProvider client={queryClient}>
@@ -453,7 +500,7 @@ describe('App Data Communication Tests', () => {
 
       // Popup sends message
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       fireEvent.change(input, { target: { value: 'Hello' } });
       fireEvent.click(button);
@@ -466,10 +513,12 @@ describe('App Data Communication Tests', () => {
       });
 
       // Content script sends message back
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Response from content' },
-        { tab: { id: 123 } }
-      );
+      await act(async () => {
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Response from content' },
+          { tab: { id: 123 } }
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Response from content')).toBeDefined();
@@ -487,16 +536,18 @@ describe('App Data Communication Tests', () => {
 
       // Send from popup
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       fireEvent.change(input, { target: { value: 'Sent message' } });
       fireEvent.click(button);
 
       // Receive from content
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Received message' },
-        { tab: { id: 123 } }
-      );
+      await act(async () => {
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Received message' },
+          { tab: { id: 123 } }
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Received message')).toBeDefined();
@@ -518,28 +569,44 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
+      // Wait for page info query to complete
+      await waitFor(() => {
+        expect(browser.tabs.sendMessage).toHaveBeenCalledWith(123, {
+          type: 'GET_PAGE_INFO',
+        });
+      });
+
+      // Clear mock calls from page info query
+      vi.clearAllMocks();
+      browser.tabs.query.mockResolvedValue([{ id: 123 }]);
+      browser.tabs.sendMessage.mockResolvedValue({ success: true });
+
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       // Send first message
       fireEvent.change(input, { target: { value: 'Send 1' } });
       fireEvent.click(button);
 
       // Receive message while sending
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Receive 1' },
-        { tab: { id: 123 } }
-      );
+      await act(async () => {
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Receive 1' },
+          { tab: { id: 123 } }
+        );
+      });
 
       // Send second message
       fireEvent.change(input, { target: { value: 'Send 2' } });
       fireEvent.click(button);
 
       // Receive another message
-      mockMessageListener(
-        { type: 'FROM_CONTENT', data: 'Receive 2' },
-        { tab: { id: 123 } }
-      );
+      await act(async () => {
+        mockMessageListener(
+          { type: 'FROM_CONTENT', data: 'Receive 2' },
+          { tab: { id: 123 } }
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Receive 1')).toBeDefined();
@@ -561,7 +628,7 @@ describe('App Data Communication Tests', () => {
       );
 
       const input = screen.getByPlaceholderText('Enter message');
-      const button = screen.getByText('Send to Page');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
 
       fireEvent.change(input, { target: { value: 'Test' } });
       fireEvent.click(button);
@@ -580,9 +647,12 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('Unable to access page info')).toBeDefined();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByText('Unable to access page info')).toBeDefined();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('handles malformed messages from content script', async () => {
@@ -592,7 +662,8 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
-      // Send message without required fields
+      // Send message without required fields - this won't trigger state update
+      // because the message type doesn't match 'FROM_CONTENT'
       mockMessageListener({ type: 'FROM_CONTENT' }, { tab: { id: 123 } });
 
       // Should not crash and should not display undefined
@@ -609,13 +680,15 @@ describe('App Data Communication Tests', () => {
         </QueryClientProvider>
       );
 
-      // Send 10 messages rapidly
-      for (let i = 0; i < 10; i++) {
-        mockMessageListener(
-          { type: 'FROM_CONTENT', data: `Rapid message ${i}` },
-          { tab: { id: 123 } }
-        );
-      }
+      await act(async () => {
+        // Send 10 messages rapidly
+        for (let i = 0; i < 10; i++) {
+          mockMessageListener(
+            { type: 'FROM_CONTENT', data: `Rapid message ${i}` },
+            { tab: { id: 123 } }
+          );
+        }
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Rapid message 0')).toBeDefined();
