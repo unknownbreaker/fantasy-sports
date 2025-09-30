@@ -38,6 +38,8 @@ export default defineConfig({
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        // CRITICAL FIX: Force IIFE format for background and content scripts
+        format: 'iife',
       },
     },
     outDir: 'dist',
