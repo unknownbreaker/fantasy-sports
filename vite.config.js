@@ -29,17 +29,17 @@ export default defineConfig({
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'background') {
-            return 'background/[name].js';
+            return 'background/background.js';
           }
           if (chunkInfo.name === 'content') {
-            return 'content/[name].js';
+            return 'content/content.js';
           }
           return 'assets/[name]-[hash].js';
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // CRITICAL FIX: Force IIFE format for background and content scripts
-        format: 'iife',
+        // ES format is fine for Manifest V3
+        format: 'es',
       },
     },
     outDir: 'dist',
