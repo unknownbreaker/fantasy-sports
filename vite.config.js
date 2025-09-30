@@ -7,10 +7,15 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'copy-manifest',
+      name: 'copy-manifest-and-icons',
       closeBundle() {
         // Copy manifest
         copyFileSync('manifest.json', 'dist/manifest.json');
+        // Copy icons
+        copyFileSync('public/icons/icon-16.png', 'dist/icons/icon-16.png');
+        copyFileSync('public/icons/icon-32.png', 'dist/icons/icon-32.png');
+        copyFileSync('public/icons/icon-48.png', 'dist/icons/icon-48.png');
+        copyFileSync('public/icons/icon-96.png', 'dist/icons/icon-96.png');
       },
     },
   ],
