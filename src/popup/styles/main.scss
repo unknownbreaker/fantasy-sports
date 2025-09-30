@@ -166,10 +166,18 @@ body {
 
     td {
       padding: 10px 12px;
+
+      &.empty-state {
+        text-align: center;
+        color: color.adjust($text-secondary, $lightness: 15%);
+        font-style: italic;
+        background-color: $background-light;
+      }
     }
   }
 }
 
+// Empty state (standalone, for backward compatibility)
 .empty-state {
   padding: 20px;
   text-align: center;

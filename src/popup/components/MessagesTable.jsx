@@ -31,10 +31,7 @@ function MessagesTable({ messages }) {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  if (messages.length === 0) {
-    return <div className="empty-state">No messages yet...</div>;
-  }
-
+  // Always show table structure with headers
   return (
     <div className="table-container">
       <table className="messages-table">
@@ -55,15 +52,23 @@ function MessagesTable({ messages }) {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+          {messages.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="empty-state">
+                No messages yet
+              </td>
             </tr>
-          ))}
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

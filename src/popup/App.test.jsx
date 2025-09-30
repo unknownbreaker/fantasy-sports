@@ -52,7 +52,8 @@ describe('App Component', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('Send to Page')).toBeDefined();
+    // Use getAllByText since "Send to Page" appears in both h2 and button
+    expect(screen.getAllByText('Send to Page').length).toBeGreaterThan(0);
     expect(screen.getByText('Messages from Page')).toBeDefined();
     expect(screen.getByText('Page Information')).toBeDefined();
   });

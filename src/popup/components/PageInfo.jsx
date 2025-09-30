@@ -13,11 +13,15 @@ function PageInfo({ pageInfo, isLoading }) {
     <div className="page-info">
       <div className="info-row">
         <span className="label">URL:</span>
-        <span className="value">{pageInfo.url}</span>
+        <span className="value" style={{ whiteSpace: 'pre-wrap' }}>
+          {pageInfo.url}
+        </span>
       </div>
       <div className="info-row">
         <span className="label">Title:</span>
-        <span className="value">{pageInfo.title}</span>
+        <span className="value" style={{ whiteSpace: 'pre-wrap' }}>
+          {pageInfo.title}
+        </span>
       </div>
       <div className="info-row">
         <span className="label">Elements:</span>

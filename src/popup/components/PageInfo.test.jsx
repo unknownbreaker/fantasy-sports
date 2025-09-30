@@ -289,7 +289,11 @@ describe('PageInfo Component - Data Communication Tests', () => {
 
       render(<PageInfo pageInfo={mockPageInfo} isLoading={false} />);
 
-      expect(screen.getByText('Multiple    Spaces    Here')).toBeDefined();
+      expect(
+        screen.getByText('Multiple    Spaces    Here', {
+          normalizeWhitespace: false,
+        })
+      ).toBeDefined();
     });
   });
 
