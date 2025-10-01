@@ -42,7 +42,7 @@ describe('App Component', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText(/My Firefox Addon/i)).toBeDefined();
+    expect(screen.getByText(/Fantasy Sports Helper/i)).toBeDefined();
   });
 
   it('renders all sections', () => {
