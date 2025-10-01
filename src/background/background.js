@@ -1,7 +1,11 @@
-// Background script - runs persistently in the background
+// src/background/background.js
 import browser from 'webextension-polyfill';
+import { registerEspnMessageHandler } from '../services/espnApi/espnMessageHandler';
 
 console.log('Background script loaded');
+
+// Register ESPN API message handler
+registerEspnMessageHandler();
 
 // Listen for messages from content scripts or popup
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
