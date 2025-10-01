@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { extensionScriptsPlugin } from './vite-content-script-plugin.js';
 
 export default defineConfig({
   plugins: [
@@ -18,27 +19,18 @@ export default defineConfig({
         },
       ],
     }),
+    extensionScriptsPlugin(),
   ],
   build: {
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'popup/index.html'),
-        background: resolve(__dirname, 'src/background/background.js'),
-        content: resolve(__dirname, 'src/content/content.js'),
+        // Remove background and content - handled by plugin
       },
       output: {
-        entryFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'background') {
-            return 'background/background.js';
-          }
-          if (chunkInfo.name === 'content') {
-            return 'content/content.js';
-          }
-          return 'assets/[name]-[hash].js';
-        },
+        entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // ES format is fine for Manifest V3
         format: 'es',
       },
     },
