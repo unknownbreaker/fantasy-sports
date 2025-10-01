@@ -5,7 +5,7 @@ export function extensionScriptsPlugin() {
   return {
     name: 'extension-scripts-iife',
     async closeBundle() {
-      // Build content script as IIFE
+      // Build content script as IIFE - output to dist root
       await build({
         configFile: false,
         build: {
@@ -15,7 +15,7 @@ export function extensionScriptsPlugin() {
             name: 'ContentScript',
             fileName: () => 'content.js',
           },
-          outDir: 'dist/content',
+          outDir: 'dist', // ✓ Output to dist root
           emptyOutDir: false,
           rollupOptions: {
             output: {
@@ -24,9 +24,9 @@ export function extensionScriptsPlugin() {
           },
         },
       });
-      console.log('✓ Content script built as IIFE');
+      console.log('✓ Content script built as IIFE at dist/content.js');
 
-      // Build background script as IIFE
+      // Build background script as IIFE - output to dist root
       await build({
         configFile: false,
         build: {
@@ -36,7 +36,7 @@ export function extensionScriptsPlugin() {
             name: 'BackgroundScript',
             fileName: () => 'background.js',
           },
-          outDir: 'dist/background',
+          outDir: 'dist', // ✓ Output to dist root
           emptyOutDir: false,
           rollupOptions: {
             output: {
@@ -45,7 +45,7 @@ export function extensionScriptsPlugin() {
           },
         },
       });
-      console.log('✓ Background script built as IIFE');
+      console.log('✓ Background script built as IIFE at dist/background.js');
     },
   };
 }
