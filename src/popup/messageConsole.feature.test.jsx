@@ -123,7 +123,7 @@ describe('Feature: Popup Message to Active Tab Console', () => {
         '!@#$%',
         'Mixed123!',
         'With spaces',
-        'With\nnewlines',
+        // Note: HTML text inputs strip newlines, so we don't test them
       ];
 
       testInputs.forEach((text) => {
@@ -171,7 +171,7 @@ describe('Feature: Popup Message to Active Tab Console', () => {
    * Tests that verify the send button triggers message transmission
    */
   describe('Module: Button Interaction', () => {
-    it('has a clickable send button', () => {
+    it('has a send button that is disabled when input is empty', () => {
       render(
         <QueryClientProvider client={queryClient}>
           <App />
@@ -181,6 +181,25 @@ describe('Feature: Popup Message to Active Tab Console', () => {
       const button = screen.getByRole('button', { name: 'Send to Page' });
 
       expect(button).toBeDefined();
+      // Button should be disabled when input is empty (correct behavior)
+      expect(button.disabled).toBe(true);
+    });
+
+    it('enables button when input has text', () => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      );
+
+      const input = screen.getByPlaceholderText('Enter message');
+      const button = screen.getByRole('button', { name: 'Send to Page' });
+
+      // Initially disabled
+      expect(button.disabled).toBe(true);
+
+      // Becomes enabled after typing
+      fireEvent.change(input, { target: { value: 'Test' } });
       expect(button.disabled).toBe(false);
     });
 
@@ -212,12 +231,20 @@ describe('Feature: Popup Message to Active Tab Console', () => {
       const input = screen.getByPlaceholderText('Enter message');
       const button = screen.getByRole('button', { name: 'Send to Page' });
 
+      // Clear any calls from page info query
+      const initialCalls = browser.tabs.sendMessage.mock.calls.filter(
+        (call) => call[1]?.type === 'FROM_POPUP'
+      ).length;
+
       // First click
       fireEvent.change(input, { target: { value: 'First' } });
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(browser.tabs.sendMessage).toHaveBeenCalledTimes(1);
+        const fromPopupCalls = browser.tabs.sendMessage.mock.calls.filter(
+          (call) => call[1]?.type === 'FROM_POPUP'
+        );
+        expect(fromPopupCalls.length).toBe(initialCalls + 1);
       });
 
       // Second click
@@ -225,7 +252,10 @@ describe('Feature: Popup Message to Active Tab Console', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(browser.tabs.sendMessage).toHaveBeenCalledTimes(2);
+        const fromPopupCalls = browser.tabs.sendMessage.mock.calls.filter(
+          (call) => call[1]?.type === 'FROM_POPUP'
+        );
+        expect(fromPopupCalls.length).toBe(initialCalls + 2);
       });
     });
 
@@ -466,7 +496,8 @@ describe('Feature: Popup Message to Active Tab Console', () => {
       const input = screen.getByPlaceholderText('Enter message');
       const button = screen.getByRole('button', { name: 'Send to Page' });
 
-      const specialContent = 'Content with\nnewlines\tand tabs';
+      // Note: HTML text inputs strip newlines, so we test with tabs only
+      const specialContent = 'Content with\ttabs';
       fireEvent.change(input, { target: { value: specialContent } });
       fireEvent.click(button);
 
@@ -1018,7 +1049,7 @@ describe('Feature: Popup Message to Active Tab Console', () => {
       expect(newPopupLogs).toHaveLength(0);
     });
 
-    it('handles message with only whitespace', async () => {
+    it('does not send whitespace-only messages', async () => {
       render(
         <QueryClientProvider client={queryClient}>
           <App />
@@ -1030,14 +1061,19 @@ describe('Feature: Popup Message to Active Tab Console', () => {
 
       const whitespaceOnly = '     ';
       fireEvent.change(input, { target: { value: whitespaceOnly } });
+
+      // Button should be disabled for whitespace-only input
+      expect(button.disabled).toBe(true);
+
       fireEvent.click(button);
 
-      await waitFor(() => {
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          'Received from popup:',
-          whitespaceOnly
-        );
-      });
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Should not have sent the message
+      expect(consoleLogSpy).not.toHaveBeenCalledWith(
+        'Received from popup:',
+        whitespaceOnly
+      );
     });
 
     it('handles unicode and special characters', async () => {
@@ -1094,7 +1130,8 @@ describe('Feature: Popup Message to Active Tab Console', () => {
       const input = screen.getByPlaceholderText('Enter message');
       const button = screen.getByRole('button', { name: 'Send to Page' });
 
-      const withEscapes = 'Line 1\nLine 2\tTabbed\rReturn';
+      // Note: HTML text inputs strip \n and \r, tabs are preserved
+      const withEscapes = 'Line 1\tTabbed';
       fireEvent.change(input, { target: { value: withEscapes } });
       fireEvent.click(button);
 
